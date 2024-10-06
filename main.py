@@ -4,124 +4,153 @@ import sys
 import os
 from words import word_list
 
-# Initialize Pygame
+# For pygame 
 pygame.init()
 
-# Set up colors
+# Colors used for fonts
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (126, 173, 204)
 
-# Set up font
+# Font set up 
 FONT = pygame.font.SysFont('Arial', 30)
 SMALL_FONT = pygame.font.SysFont('Arial', 20)
 
-# Set up the window
+# Set up for the pygame window
 WINDOW_WIDTH, WINDOW_HEIGHT = 800, 600
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('Hangrybird')
 
-# Path to the animation frames folder
-ANIMATION_FRAMES_DIR = "animation_frames"  # Directory where your frames are stored
+# This is for the animation frames
+ANIMATION_FRAMES_DIR = "animation_frames"
 
 # Check if the frames directory exists
 if not os.path.exists(ANIMATION_FRAMES_DIR):
     print(f"Error: {ANIMATION_FRAMES_DIR} does not exist!")
     sys.exit()
 
-# Check if all the frames are present
-for i in range(1, 4):  # We are expecting frame1.png, frame2.png, frame3.png
-    frame_path = f"{ANIMATION_FRAMES_DIR}/frame{i}.png"
-    if not os.path.exists(frame_path):
-        print(f"Error: {frame_path} does not exist!")
-        sys.exit()
-    else:
-        print(f"Found {frame_path}")
-
-# Function to load all frames of animation
+# Load all frames of the main animation
 def load_animation_frames():
     frames = []
-    # Loading 3 frames: frame1.png, frame2.png, and frame3.png
-    for i in range(1, 4):  # We have 3 frames
+    for i in range(1, 4):
         frame_path = f"{ANIMATION_FRAMES_DIR}/frame{i}.png"
         if os.path.exists(frame_path):
             frames.append(pygame.image.load(frame_path))
         else:
             print(f"Error: {frame_path} does not exist!")
-            sys.exit()  # Exit if any frame is missing
+            sys.exit()
+    return frames
+
+# Load winning animation frames
+def load_winning_animation_frames():
+    frames = []
+    for i in range(4, 11):
+        frame_path = f"{ANIMATION_FRAMES_DIR}/frame{i}.png"
+        if os.path.exists(frame_path):
+            frames.append(pygame.image.load(frame_path))
+        else:
+            print(f"Error: {frame_path} does not exist!")
+            return frames
+    print(f"Loaded {len(frames)} winning frames.")
     return frames
 
 # Load the animation frames
 animation_frames = load_animation_frames()
+winning_animation_frames = load_winning_animation_frames()
 
-# Optionally scale the image/frames (adjust the width/height as needed)
+# Scale frames for display
 def scale_animation_frame(image, width=600, height=450):
-    """ Scales the image to a larger size. You can adjust width and height as needed. """
-    return pygame.transform.scale(image, (width, height))  # Scale to fit the window
+    return pygame.transform.scale(image, (width, height))
 
-# Scale all animation frames to a larger size (increased size)
 animation_frames = [scale_animation_frame(frame) for frame in animation_frames]
+winning_animation_frames = [scale_animation_frame(frame) for frame in winning_animation_frames]
 
-# Get the word for the game
+# Get a random word
 def get_word():
-    word = random.choice(word_list)
-    return word.upper()
+    return random.choice(word_list).upper()
 
-# Function to draw text
+# Draw text on the screen
 def draw_text(text, font, color, y_position, x_position=20):
-    """ Function to draw text on the screen at a specific Y position, aligned to the left """
     text_surface = font.render(text, True, color)
-    text_rect = text_surface.get_rect(topleft=(x_position, y_position))  # Align to top-left
+    text_rect = text_surface.get_rect(topleft=(x_position, y_position))
     screen.blit(text_surface, text_rect)
+
+# Function to play winning animation
+def play_winning_animation(rounds_won, total_rounds):
+    frame_index = 0
+    num_frames = len(winning_animation_frames)
+    frame_delay = 130
+    last_frame_time = pygame.time.get_ticks()
+
+    if num_frames == 0:
+        print("No winning frames to display.")
+        return
+
+    while True:
+        screen.fill(WHITE)  # Clear screen before drawing
+
+        current_time = pygame.time.get_ticks()
+        if current_time - last_frame_time >= frame_delay:
+            frame_index = (frame_index + 1) % num_frames
+            last_frame_time = current_time
+
+        # Draw the current frame
+        screen.blit(winning_animation_frames[frame_index], (100, 75))
+
+        # Draw final score above the winning animation
+        draw_text(f"Final score: {rounds_won} out of {total_rounds}", FONT, BLACK, 20)  
+        draw_text("Wanna find some more food? (Y/N)", SMALL_FONT, BLACK, 450)
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if pygame.key.name(event.key).upper() == 'Y':
+                    return True  # Continue playing
+                elif pygame.key.name(event.key).upper() == 'N':
+                    pygame.quit()
+                    sys.exit()
 
 # Main gameplay loop
 def play(word):
     word_completion = "_" * len(word)
     guessed = False
     guessed_letters = []
-    guessed_words = []
     tries = 8
-
-    # Index for the current frame in the animation (if using multiple frames)
+    score = 0  # Initialize score
     frame_index = 0
     num_frames = len(animation_frames)
+    frame_delay = 130
+    last_frame_time = pygame.time.get_ticks()
 
-    # Time control for slowing down the animation (in milliseconds)
-    frame_delay = 130  # Delay in milliseconds (500ms = 0.5s per frame)
-
-    last_frame_time = pygame.time.get_ticks()  # Time of the last frame update
-
-    # Game Loop
     while not guessed and tries > 0:
-        screen.fill(WHITE)  # Clear the screen
+        screen.fill(WHITE)
 
-        # Check if enough time has passed to change the frame
         current_time = pygame.time.get_ticks()
         if current_time - last_frame_time >= frame_delay:
-            # Time passed, change frame
             frame_index = (frame_index + 1) % num_frames
-            last_frame_time = current_time  # Reset the last frame time
+            last_frame_time = current_time
 
-        # Display the animation (cycle through the frames)
-        screen.blit(animation_frames[frame_index], (100, 75))  # Position the frame (increased size)
+        screen.blit(animation_frames[frame_index], (100, 75))
 
-        # Display the word and other game info at the bottom
         if not guessed and tries > 0:
-            draw_text("Word: " + " ".join(word_completion), FONT, BLACK, 510)  # Word at the bottom
+            draw_text("Word: " + " ".join(word_completion), FONT, BLACK, 510)
             draw_text("Incorrect guesses: " + ", ".join(guessed_letters), SMALL_FONT, BLACK, 560)
             draw_text(f"Tries left: {tries}", SMALL_FONT, BLACK, 10, x_position=20)
-        
+            draw_text(f"Score: {score}", SMALL_FONT, BLACK, 10, x_position=600)  # Display score
+
         pygame.display.update()
 
-        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 guess = pygame.key.name(event.key).upper()
-
                 if len(guess) == 1 and guess.isalpha():
                     if guess in guessed_letters:
                         continue
@@ -135,53 +164,40 @@ def play(word):
                         for index in indices:
                             word_as_list[index] = guess
                         word_completion = "".join(word_as_list)
+                        score += 10  # Increment score for each correct letter
 
                         if "_" not in word_completion:
                             guessed = True
                 elif len(guess) == len(word) and guess.isalpha():
                     if guess != word:
                         tries -= 1
-                        guessed_words.append(guess)
                     else:
                         guessed = True
                         word_completion = word
+                        score += 50  # Bonus score for guessing the whole word
 
-        pygame.display.update()
-
-    # Once the game ends, we hide the word and incorrect guesses and show the final message
     if guessed:
-        # Display final message when the player wins
-        draw_text(f"Good job the Bird is excited to try some {word}", FONT, BLUE, 450)
+        return True  # Indicate win
     else:
-        # Display final message when the player loses
-        draw_text(f"You lost the bird is hangry!! The word was {word}", FONT, RED, 450)
-
-    pygame.display.update()
-    pygame.time.wait(2000)
+        draw_text(f"You lost! The word was {word}", FONT, RED, 450)
+        pygame.display.update()
+        pygame.time.wait(2000)
+        return False  # Indicate loss
 
 # Main function to start the game
 def main():
-    word = get_word()
-    play(word)
+    while True:  # Loop for multiple rounds
+        rounds_won = 0
+        total_rounds = 3
 
-    while True:
-        draw_text("Wanna find some more food? (Y/N)", SMALL_FONT, BLACK, 50)
-        pygame.display.update()
+        for _ in range(total_rounds):
+            word = get_word()
+            if play(word):
+                rounds_won += 1  # Increment score if the player guessed the word
 
-        waiting_for_input = True
-        while waiting_for_input:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.KEYDOWN:
-                    if pygame.key.name(event.key).upper() == 'Y':
-                        word = get_word()
-                        play(word)
-                        waiting_for_input = False
-                    elif pygame.key.name(event.key).upper() == 'N':
-                        pygame.quit()
-                        sys.exit()
+        # Play winning animation if rounds_won is greater than 0
+        if rounds_won > 0:
+            play_winning_animation(rounds_won, total_rounds)
 
 if __name__ == "__main__":
     main()

@@ -1,2 +1,2 @@
 # Hangbird-game
-This is a twist on the hang man game except you are aganist a very hungry bird
+In this game there is a hungry bird and you have to figure out the words to feed it (kinda like hangman but different)
