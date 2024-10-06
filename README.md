@@ -1,2 +1,2 @@
 # Hangbird-game
-This is a twist on the game hangman except you are competeing aganist a bird and you have 8 tries to beat it. 
+This is a twist on the hang man game except you are aganist a very hungry bird
