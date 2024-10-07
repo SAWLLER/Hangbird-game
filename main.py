@@ -55,9 +55,23 @@ def load_winning_animation_frames():
     print(f"Loaded {len(frames)} winning frames.")
     return frames
 
+# Load losing animation frames
+def load_losing_animation_frames():
+    frames = []
+    for i in range(11, 20):
+        frame_path = f"{ANIMATION_FRAMES_DIR}/frame{i}.png"
+        if os.path.exists(frame_path):
+            frames.append(pygame.image.load(frame_path))
+        else:
+            print(f"Error: {frame_path} does not exist!")
+            return frames
+    print(f"Loaded {len(frames)} losing frames.")
+    return frames
+
 # Load the animation frames
 animation_frames = load_animation_frames()
 winning_animation_frames = load_winning_animation_frames()
+losing_animation_frames = load_losing_animation_frames()
 
 # Scale frames for display
 def scale_animation_frame(image, width=600, height=450):
@@ -65,6 +79,7 @@ def scale_animation_frame(image, width=600, height=450):
 
 animation_frames = [scale_animation_frame(frame) for frame in animation_frames]
 winning_animation_frames = [scale_animation_frame(frame) for frame in winning_animation_frames]
+losing_animation_frames = [scale_animation_frame(frame) for frame in losing_animation_frames]
 
 # Get a random word
 def get_word():
@@ -115,12 +130,49 @@ def play_winning_animation(rounds_won, total_rounds):
                     pygame.quit()
                     sys.exit()
 
+# Function to play losing animation
+def play_losing_animation(word):
+    frame_index = 0
+    num_frames = len(losing_animation_frames)
+    frame_delay = 130
+    last_frame_time = pygame.time.get_ticks()
+
+    if num_frames == 0:
+        print("No losing frames to display.")
+        return
+
+    while True:
+        screen.fill(WHITE)  # Clear screen before drawing
+
+        current_time = pygame.time.get_ticks()
+        if current_time - last_frame_time >= frame_delay:
+            frame_index = (frame_index + 1) % num_frames
+            last_frame_time = current_time
+
+        # Draw the current frame
+        screen.blit(losing_animation_frames[frame_index], (100, 75))
+        draw_text(f"The bird is fuming! The word was {word}.", FONT, RED, 480)
+        draw_text("Do you want to try again? (Y/N)", FONT, RED, 530)
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if pygame.key.name(event.key).upper() == 'Y':
+                    return True  # Restart the game
+                elif pygame.key.name(event.key).upper() == 'N':
+                    pygame.quit()
+                    sys.exit()
+
 # Main gameplay loop
 def play(word):
     word_completion = "_" * len(word)
     guessed = False
     guessed_letters = []
-    tries = 8
+    tries = 6
     score = 0  # Initialize score
     frame_index = 0
     num_frames = len(animation_frames)
@@ -179,9 +231,7 @@ def play(word):
     if guessed:
         return True  # Indicate win
     else:
-        draw_text(f"You lost! The word was {word}", FONT, RED, 450)
-        pygame.display.update()
-        pygame.time.wait(2000)
+        play_losing_animation(word)  # Play losing animation
         return False  # Indicate loss
 
 # Main function to start the game
@@ -194,6 +244,8 @@ def main():
             word = get_word()
             if play(word):
                 rounds_won += 1  # Increment score if the player guessed the word
+            else:
+                break  # Exit the loop if the player chooses not to play again
 
         # Play winning animation if rounds_won is greater than 0
         if rounds_won > 0:
